@@ -3,6 +3,28 @@ import { validateUrl } from '../utils/index.js';
 import URLModel from '../models/url.model.js';
 import { BASE_URL } from '../constants.js';
 
+
+
+const GetAllUrl = async (req, res) => {
+    try {
+        const urls = await URLModel.find();
+        if(urls.length < 1){
+            return res.status(200).json({
+                msg: "...Oops No Url Found",
+            });
+        }
+
+        return res.status(200).json({
+            data: urls,
+        });
+    } catch (error) {
+        return res.status(400).json({
+            msg: "Something went wrong while fetching urls",
+            error,
+        });
+    }
+}
+
 const ShortUrl = async (req, res) => {
     try {
         const { originalUrl } = req.body;
@@ -26,6 +48,7 @@ const ShortUrl = async (req, res) => {
             });
         };
 
+        // generate new id
         const urlId = nanoid(8);
         const shortUrl = `${BASE_URL}/${urlId}`;
 
@@ -40,7 +63,6 @@ const ShortUrl = async (req, res) => {
             msg: "URL Generated",
             url: newShortUrl,
         });
-
     } catch (error) {
         return res.status(400).json({
             msg: "Something went wrong",
@@ -90,4 +112,4 @@ const RedirectOriginalUrl = async (req, res) => {
 }
 
 
-export { ShortUrl, RedirectOriginalUrl };
+export { ShortUrl, RedirectOriginalUrl, GetAllUrl };
