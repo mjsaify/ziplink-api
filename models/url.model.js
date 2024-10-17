@@ -23,9 +23,15 @@ const URLSchema = new mongoose.Schema(
             type: Date,
             default: Date.now,
         },
+        urlStatus: {
+            type: String,
+            enum: ['active', 'inactive', 'expired'],
+            default: 'active',
+        }
     },
     {
-        timestamps: true
+        timestamps: true,
+        versionKey: false,
     }
 );
 

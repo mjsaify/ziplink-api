@@ -10,13 +10,11 @@ const GetAllUrl = async (req, res) => {
         const urls = await URLModel.find();
         if(urls.length < 1){
             return res.status(200).json({
-                msg: "...Oops No Url Found",
+                error: "...Oops No Url Found",
             });
         }
 
-        return res.status(200).json({
-            data: urls,
-        });
+        return res.status(200).json(urls);
     } catch (error) {
         return res.status(400).json({
             msg: "Something went wrong while fetching urls",
@@ -56,7 +54,6 @@ const ShortUrl = async (req, res) => {
             urlId,
             originalUrl,
             shortUrl,
-            date: Date.now(),
         });
 
         return res.status(201).json({
