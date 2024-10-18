@@ -29,7 +29,8 @@ router.get('/generate-qr', async (req, res) => {
     } else {
         return res.status(500).json({ error: 'Failed to generate QR code' });
     }
-})
+});
+
 
 
 export default router;
