@@ -7,13 +7,15 @@ const auth = async (req, res, next) =>{
         const cookies = req.headers.cookie;
         if(cookies === undefined){
             return res.status(400).json({
-                msg: "404 Bad Request"
+                success: false,
+                message: "Invalid request token"
             });
         }
         const token = cookies.split(";")[0].split("=")[1];
         if (!token) {
             return res.status(400).json({
-                msg: "Invalid request token"
+                success: false,
+                message: "Invalid request token"
             });
         }
         const decodedToken = jwt.verify(token, ACCESS_TOKEN_SECRET);
@@ -22,7 +24,8 @@ const auth = async (req, res, next) =>{
     } catch (error) {
         console.log(error);
         return res.status(400).json({
-            msg: "Invalid request token"
+            success: false,
+            message: "Invalid request token"
         });
     }
 };
