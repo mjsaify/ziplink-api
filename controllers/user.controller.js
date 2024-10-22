@@ -127,12 +127,13 @@ const LogoutUser = async (req, res) => {
 
 const CheckAuthSession = async (req, res) =>{
     try {
-        if(!req.user){
-            return res.status(400).json({
-                success: false,
-                message: "Unauthorized request"
-            });
-        }
+        // console.log(req.user)
+        // if(!req.user){
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: "Unauthorized request"
+        //     });
+        // }
 
         res.status(200).json({
             success: true,

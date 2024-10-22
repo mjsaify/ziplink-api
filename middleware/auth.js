@@ -5,6 +5,7 @@ import { ACCESS_TOKEN_SECRET } from '../constants.js';
 const auth = async (req, res, next) =>{
     try {
         const cookies = req.headers.cookie;
+        console.log(cookies.includes("isAuthenticated"))
         if(cookies === undefined){
             return res.status(400).json({
                 success: false,
@@ -19,6 +20,7 @@ const auth = async (req, res, next) =>{
             });
         }
         const decodedToken = jwt.verify(token, ACCESS_TOKEN_SECRET);
+        console.log(decodedToken)
         req.user = decodedToken;
         next();
     } catch (error) {
