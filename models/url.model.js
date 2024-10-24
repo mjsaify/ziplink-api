@@ -27,6 +27,10 @@ const URLSchema = new mongoose.Schema(
             type: String,
             enum: ['active', 'inactive', 'expired'],
             default: 'active',
+        },
+        qrCode: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Qrcode"
         }
     },
     {

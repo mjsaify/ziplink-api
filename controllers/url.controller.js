@@ -1,14 +1,15 @@
 import { nanoid } from 'nanoid';
-import { validateUrl } from '../utils/index.js';
+import { GenearateQrCode, validateUrl } from '../utils/index.js';
 import URLModel from '../models/url.model.js';
 import { BASE_URL } from '../constants.js';
+import { uploadOnCloudinary } from '../utils/file-upload.js'
 
 
 
 const GetAllUrl = async (req, res) => {
     try {
         const urls = await URLModel.find();
-        if(urls.length < 1){
+        if (urls.length < 1) {
             return res.status(200).json({
                 error: "...Oops No Url Found",
             });
@@ -49,6 +50,16 @@ const ShortUrl = async (req, res) => {
         // generate new id
         const urlId = nanoid(8);
         const shortUrl = `${BASE_URL}/${urlId}`;
+
+        // genearate qr code
+        const qrCode = await GenearateQrCode(originalUrl);
+        if (!qrCode) {
+            return res.status(500).json({ error: 'Failed to generate QR code' });
+        };
+
+        // upload on cloudinary
+        const result = await uploadOnCloudinary(qrCode);
+        console.log(result)
 
         const newShortUrl = await URLModel.create({
             urlId,
@@ -109,4 +120,4 @@ const RedirectOriginalUrl = async (req, res) => {
 }
 
 
-export { ShortUrl, RedirectOriginalUrl, GetAllUrl };
+export { GetAllUrl, ShortUrl, RedirectOriginalUrl };
