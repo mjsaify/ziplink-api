@@ -3,11 +3,8 @@ import mongoose from "mongoose";
 const QrCodeSchema = new mongoose.Schema(
     {
         qrCodeImage: {
-            type: String,  // Base64 string of the generated QR code image
+            type: String,
             required: true,
-        },
-        expirationDate: {
-            type: Date,  // Optional, if you want QR codes to expire after a certain time
         },
         isActive: {
             type: Boolean,

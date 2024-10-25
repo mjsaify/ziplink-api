@@ -3,22 +3,51 @@ import { GenearateQrCode, validateUrl } from '../utils/index.js';
 import URLModel from '../models/url.model.js';
 import { BASE_URL } from '../constants.js';
 import { uploadOnCloudinary } from '../utils/file-upload.js'
+import QRCodeModel from '../models/qrcode.model.js';
 
 
 
 const GetAllUrl = async (req, res) => {
     try {
-        const urls = await URLModel.find();
+        const urls = await URLModel.find().populate('qrCode');
         if (urls.length < 1) {
             return res.status(200).json({
                 error: "...Oops No Url Found",
             });
-        }
+        };
 
         return res.status(200).json(urls);
     } catch (error) {
+        console.log(error)
         return res.status(400).json({
-            msg: "Something went wrong while fetching urls",
+            message: "Something went wrong while fetching urls",
+            error,
+        });
+    }
+};
+
+
+const GetSingleUrl = async (req, res) => {
+    try {
+        const urlId = req.params.id;
+
+        const url = await URLModel.findById(urlId);
+        if (!url) {
+            return res.status(400).json({
+                success: false,
+                message: "404 Url Not Found"
+            })
+        };
+
+        return res.status(200).json({
+            success: true,
+            url,
+        });
+
+    } catch (error) {
+        console.log(error)
+        return res.status(400).json({
+            message: "Something went wrong while fetching single url",
             error,
         });
     }
@@ -29,7 +58,8 @@ const ShortUrl = async (req, res) => {
         const { originalUrl } = req.body;
         if (!originalUrl) {
             return res.status(400).json({
-                msg: "Url Field is Empty"
+                success: false,
+                message: "Url Field is Empty"
             });
         };
 
@@ -52,28 +82,35 @@ const ShortUrl = async (req, res) => {
         const shortUrl = `${BASE_URL}/${urlId}`;
 
         // genearate qr code
-        const qrCode = await GenearateQrCode(originalUrl);
+        const qrCode = await GenearateQrCode(shortUrl);
         if (!qrCode) {
             return res.status(500).json({ error: 'Failed to generate QR code' });
         };
 
         // upload on cloudinary
-        const result = await uploadOnCloudinary(qrCode);
-        console.log(result)
+        const qrImage = await uploadOnCloudinary(qrCode);
 
-        const newShortUrl = await URLModel.create({
+        // save qrcode
+        const qrModel = await QRCodeModel.create({
+            qrCodeImage: qrImage.url,
+        });
+
+        // save url
+        await URLModel.create({
             urlId,
             originalUrl,
             shortUrl,
+            qrCode: qrModel._id,
         });
 
         return res.status(201).json({
-            msg: "URL Generated",
-            url: newShortUrl,
+            success: true,
+            message: "URL Generated",
         });
     } catch (error) {
         return res.status(400).json({
-            msg: "Something went wrong",
+            success: false,
+            message: "Something went wrong",
             error,
         });
     }
@@ -120,4 +157,4 @@ const RedirectOriginalUrl = async (req, res) => {
 }
 
 
-export { GetAllUrl, ShortUrl, RedirectOriginalUrl };
+export { GetAllUrl, ShortUrl, RedirectOriginalUrl, GetSingleUrl };

@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const URLSchema = new mongoose.Schema(
     {
-        urlId: { // newly generated url id
+        urlId: {
             type: String,
             required: true,
         },
