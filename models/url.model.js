@@ -31,6 +31,9 @@ const URLSchema = new mongoose.Schema(
         qrCode: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Qrcode"
+        },
+        expiresAt: {
+            type: Date,
         }
     },
     {

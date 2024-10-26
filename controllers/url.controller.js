@@ -7,7 +7,7 @@ import QRCodeModel from '../models/qrcode.model.js';
 
 
 
-const GetAllUrl = async (req, res) => {
+const GetAllUrl = async (_, res) => {
     try {
         const urls = await URLModel.find().populate('qrCode');
         if (urls.length < 1) {
