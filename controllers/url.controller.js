@@ -31,7 +31,7 @@ const GetSingleUrl = async (req, res) => {
     try {
         const urlId = req.params.id;
 
-        const url = await URLModel.findById(urlId);
+        const url = await URLModel.findById(urlId).populate("qrCode");
         if (!url) {
             return res.status(400).json({
                 success: false,
