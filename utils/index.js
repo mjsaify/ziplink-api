@@ -2,7 +2,7 @@ import QRCode from 'qrcode';
 
 export function validateUrl(value) {
     const urlPattern = new RegExp(/^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,6}(\/[\w\-.~:\/?#[\]@!$&'()*+,;%=]*)?$/i);
-    return urlPattern.test(value); // true or false
+    return urlPattern.test(value); // return true or false
 };
 
 
@@ -27,4 +27,15 @@ export const GenearateQrCode = async (url) => {
         console.error(err)
         return err;
     }
+};
+
+export const ExpirationDate = () => {
+    const currentDate = new Date();  // Get current date
+    const expirationDate = new Date(currentDate);  // Clone the current date
+
+    // Set expiration date to 7 days in the future
+    expirationDate.setDate(expirationDate.getDate() + 7);
+
+    // Convert to ISO format
+    return expirationDate.toISOString();
 };

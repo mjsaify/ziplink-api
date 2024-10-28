@@ -2,6 +2,10 @@ import mongoose from "mongoose";
 
 const URLSchema = new mongoose.Schema(
     {
+        title: {
+            type: String,
+            required: true,
+        },
         urlId: {
             type: String,
             required: true,
@@ -19,10 +23,6 @@ const URLSchema = new mongoose.Schema(
             required: true,
             default: 0,
         },
-        date: {
-            type: Date,
-            default: Date.now,
-        },
         urlStatus: {
             type: String,
             enum: ['active', 'inactive', 'expired'],
@@ -31,6 +31,9 @@ const URLSchema = new mongoose.Schema(
         qrCode: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Qrcode"
+        },
+        customLink: {
+            type: String,
         },
         expiresAt: {
             type: Date,

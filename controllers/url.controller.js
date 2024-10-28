@@ -1,9 +1,10 @@
 import { nanoid } from 'nanoid';
-import { GenearateQrCode, validateUrl } from '../utils/index.js';
+import { ExpirationDate, GenearateQrCode, validateUrl } from '../utils/index.js';
 import URLModel from '../models/url.model.js';
 import { BASE_URL } from '../constants.js';
 import { uploadOnCloudinary } from '../utils/file-upload.js'
 import QRCodeModel from '../models/qrcode.model.js';
+import { UrlSchema } from '../utils/_types.js';
 
 
 
@@ -55,58 +56,91 @@ const GetSingleUrl = async (req, res) => {
 
 const ShortUrl = async (req, res) => {
     try {
-        const { originalUrl } = req.body;
-        if (!originalUrl) {
+        const parsedInputs = UrlSchema.safeParse(req.body);
+        const expiresAt = ExpirationDate();
+        if (!parsedInputs.success) {
             return res.status(400).json({
                 success: false,
-                message: "Url Field is Empty"
+                message: "Fields are required",
             });
         };
-
-        if (!validateUrl(originalUrl)) {
-            return res.status(400).json({
-                msg: "Invalid URL"
-            });
-        };
+        const { title, originalUrl, customLink } = parsedInputs.data;
 
         // check if url exist in db, then return it
-        const isExistedUrl = await URLModel.findOne({ originalUrl });
-        if (isExistedUrl) {
+        const url = await URLModel.findOne({ originalUrl });
+        if (url) {
             return res.status(200).json({
-                url: isExistedUrl.shortUrl,
+                success: true,
+                message: "Url already exist",
             });
         };
 
-        // generate new id
-        const urlId = nanoid(8);
-        const shortUrl = `${BASE_URL}/${urlId}`;
+        if (customLink) {
+            const urlId = nanoid(8);
+            const shortUrl = `${BASE_URL}/${customLink}`;
 
-        // genearate qr code
-        const qrCode = await GenearateQrCode(shortUrl);
-        if (!qrCode) {
-            return res.status(500).json({ error: 'Failed to generate QR code' });
-        };
+            const qrCode = await GenearateQrCode(shortUrl);
+            if (!qrCode) {
+                return res.status(500).json({ error: 'Failed to generate QR code' });
+            };
 
-        // upload on cloudinary
-        const qrImage = await uploadOnCloudinary(qrCode);
+            const qrImage = await uploadOnCloudinary(qrCode);
 
-        // save qrcode
-        const qrModel = await QRCodeModel.create({
-            qrCodeImage: qrImage.url,
-        });
+            // save qrcode
+            const qrModel = await QRCodeModel.create({
+                qrCodeImage: qrImage.url,
+            });
 
-        // save url
-        await URLModel.create({
-            urlId,
-            originalUrl,
-            shortUrl,
-            qrCode: qrModel._id,
-        });
+            // save url
+            await URLModel.create({
+                title,
+                urlId,
+                originalUrl,
+                shortUrl,
+                qrCode: qrModel._id,
+                customLink,
+                expiresAt
+            });
 
-        return res.status(201).json({
-            success: true,
-            message: "URL Generated",
-        });
+            return res.status(201).json({
+                success: true,
+                message: "URL Generated",
+            });
+
+        } else {
+            // generate new id
+            const urlId = nanoid(8);
+            const shortUrl = `${BASE_URL}/${urlId}`;
+
+            // genearate qr code
+            const qrCode = await GenearateQrCode(shortUrl);
+            if (!qrCode) {
+                return res.status(500).json({ error: 'Failed to generate QR code' });
+            };
+
+            // upload on cloudinary
+            const qrImage = await uploadOnCloudinary(qrCode);
+
+            // save qrcode
+            const qrModel = await QRCodeModel.create({
+                qrCodeImage: qrImage.url,
+            });
+
+            // save url
+            await URLModel.create({
+                title,
+                urlId,
+                originalUrl,
+                shortUrl,
+                qrCode: qrModel._id,
+                expiresAt
+            });
+
+            return res.status(201).json({
+                success: true,
+                message: "URL Generated",
+            });
+        }
     } catch (error) {
         return res.status(400).json({
             success: false,
