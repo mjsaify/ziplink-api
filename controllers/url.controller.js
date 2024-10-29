@@ -1,10 +1,11 @@
 import { nanoid } from 'nanoid';
 import { ExpirationDate, GenearateQrCode, validateUrl } from '../utils/index.js';
 import URLModel from '../models/url.model.js';
-import { BASE_URL } from '../constants.js';
+import { SHORT_URL } from '../constants.js';
 import { uploadOnCloudinary } from '../utils/file-upload.js'
 import QRCodeModel from '../models/qrcode.model.js';
 import { UrlSchema } from '../utils/_types.js';
+import { z } from 'zod';
 
 
 
@@ -76,8 +77,16 @@ const ShortUrl = async (req, res) => {
         };
 
         if (customLink) {
+            // check if custom link exist
+            const customLinkExist = await URLModel.findOne({ customLink });
+            if (customLinkExist) {
+                return res.status(400).json({ 
+                    success: false,
+                    error: 'Custom link cannot be same'
+                 });
+            };
             const urlId = nanoid(8);
-            const shortUrl = `${BASE_URL}/${customLink}`;
+            const shortUrl = `${SHORT_URL}/${customLink}`;
 
             const qrCode = await GenearateQrCode(shortUrl);
             if (!qrCode) {
@@ -110,7 +119,7 @@ const ShortUrl = async (req, res) => {
         } else {
             // generate new id
             const urlId = nanoid(8);
-            const shortUrl = `${BASE_URL}/${urlId}`;
+            const shortUrl = `${SHORT_URL}/${urlId}`;
 
             // genearate qr code
             const qrCode = await GenearateQrCode(shortUrl);
@@ -142,9 +151,10 @@ const ShortUrl = async (req, res) => {
             });
         }
     } catch (error) {
+        console.log(error)
         return res.status(400).json({
             success: false,
-            message: "Something went wrong",
+            message: "Something went wrong while shortening url",
             error,
         });
     }
@@ -153,26 +163,27 @@ const ShortUrl = async (req, res) => {
 
 const RedirectOriginalUrl = async (req, res) => {
     try {
-        const { userId } = req.params.userId;
+        const { urlId } = req.params;
         const requestUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
 
-        const url = await URLModel.findOne({ userId });
-
+        const url = await URLModel.findOne({ customLink: urlId });
+        console.log(url)
         if (!url) {
             return res.status(200).json({
-                msg: "Invalid url",
+                message: "Invalid url",
             });
         };
 
+
         if (requestUrl !== url.shortUrl) {
             return res.status(200).json({
-                msg: "Invalid url",
+                message: "Invalid url",
             });
         };
 
         await URLModel.updateOne(
             {
-                userId
+                urlId
             },
             {
                 $inc: { clicks: 1 },
@@ -184,11 +195,57 @@ const RedirectOriginalUrl = async (req, res) => {
         return res.redirect(url.originalUrl);
     } catch (error) {
         return res.status(400).json({
-            msg: "Something went wrong while redirecting",
+            message: "Something went wrong while redirecting",
             error,
+        });
+    }
+};
+
+const UpdateUrl = async (req, res) => {
+    try {
+        const zodValidation = z.object({
+            expiresAt: z.string().datetime(),
+            urlStatus: z.string(),
+        });
+
+        const parsedInputs = zodValidation.safeParse(req.body);
+        if (!parsedInputs.success) {
+            return res.status(400).json({ error: 'Invalid Fields' });
+        };
+
+        const url = await URLModel.findOneAndUpdate(
+            { _id: req.params.id },
+            {
+                $set: {
+                    expiresAt: parsedInputs.data.expiresAt,
+                    urlStatus: parsedInputs.data.urlStatus,
+                }
+            },
+            {
+                new: true,
+            }
+        );
+
+        if (!url) {
+            return res.status(400).json({
+                message: "Url could not update",
+                error,
+            });
+        };
+
+        return res.status(201).json({
+            success: true,
+            message: "URL Updated",
+        });
+
+
+    } catch (error) {
+        console.log(error)
+        return res.status(400).json({
+            error: "Something went wrong while upating url"
         });
     }
 }
 
 
-export { GetAllUrl, ShortUrl, RedirectOriginalUrl, GetSingleUrl };
+export { GetAllUrl, ShortUrl, RedirectOriginalUrl, GetSingleUrl, UpdateUrl };

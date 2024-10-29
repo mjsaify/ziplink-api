@@ -13,6 +13,6 @@ app.use(cors({
 app.use(Express.json({ limit: "16kb"}));
 app.use(Express.urlencoded({ extended: true, limit: "16kb"}));
 app.use("/api", router);
-app.get("/:userId", RedirectOriginalUrl);
+app.get("/:urlId", RedirectOriginalUrl);
 
 export { app };
