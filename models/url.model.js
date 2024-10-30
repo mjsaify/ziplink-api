@@ -23,6 +23,10 @@ const URLSchema = new mongoose.Schema(
             required: true,
             default: 0,
         },
+        uniqueClicks: {
+            type: Number,
+            default: 0,
+        },
         urlStatus: {
             type: String,
             enum: ['active', 'inactive', 'expired'],

@@ -21,7 +21,8 @@ export const generateAccessAndRefreshToken = async (user) => {
 
 export const GenearateQrCode = async (url) => {
     try {
-        const qrCode = await QRCode.toDataURL(url, { type: 'image/jpeg' });
+        const qrCodeUrl = `${url}/?source=qr`; // implementing id for tracking scans
+        const qrCode = await QRCode.toDataURL(qrCodeUrl, { type: 'image/jpeg' });
         return qrCode;
     } catch (err) {
         console.error(err)

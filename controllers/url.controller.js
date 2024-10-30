@@ -6,6 +6,7 @@ import { uploadOnCloudinary } from '../utils/file-upload.js'
 import QRCodeModel from '../models/qrcode.model.js';
 import { UrlSchema } from '../utils/_types.js';
 import { z } from 'zod';
+import UserIpModel from '../models/userip.model.js';
 
 
 
@@ -87,6 +88,7 @@ const ShortUrl = async (req, res) => {
             };
             const urlId = nanoid(8);
             const shortUrl = `${SHORT_URL}/${customLink}`;
+            const qrCodeUri = `${shortUrl}/?source=qr`
 
             const qrCode = await GenearateQrCode(shortUrl);
             if (!qrCode) {
@@ -97,6 +99,7 @@ const ShortUrl = async (req, res) => {
 
             // save qrcode
             const qrModel = await QRCodeModel.create({
+                qrCodeUrl: qrCodeUri,
                 qrCodeImage: qrImage.url,
             });
 
@@ -120,6 +123,7 @@ const ShortUrl = async (req, res) => {
             // generate new id
             const urlId = nanoid(8);
             const shortUrl = `${SHORT_URL}/${urlId}`;
+            const qrCodeUri = `${shortUrl}/?source=qr`
 
             // genearate qr code
             const qrCode = await GenearateQrCode(shortUrl);
@@ -132,6 +136,7 @@ const ShortUrl = async (req, res) => {
 
             // save qrcode
             const qrModel = await QRCodeModel.create({
+                qrCodeUrl: qrCodeUri,
                 qrCodeImage: qrImage.url,
             });
 
@@ -164,7 +169,7 @@ const ShortUrl = async (req, res) => {
 const RedirectOriginalUrl = async (req, res) => {
     try {
         const { urlId } = req.params;
-        const requestUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
+        const source = req.query.source;
 
         const url = await URLModel.findOne({
             $or: [
@@ -179,11 +184,25 @@ const RedirectOriginalUrl = async (req, res) => {
             });
         };
 
-        if (requestUrl !== url.shortUrl) {
-            return res.status(200).json({
-                message: "Invalid url",
-            });
-        };
+        // Check if it's a QR code scan
+        if (source === "qr") {
+            await QRCodeModel.updateOne(
+                {
+                    _id: url.qrCode
+                },
+                {
+                    $inc: {
+                        scans: 1
+                    }
+                },
+                {
+                    new: true
+                }
+
+            );
+            return res.redirect(url.originalUrl);
+        }
+
 
         // comparing dates
         const currentDate = new Date().toISOString();
@@ -196,6 +215,22 @@ const RedirectOriginalUrl = async (req, res) => {
 
         // check url status
         if (url.urlStatus === "active") {
+            // check for unique ip
+            const userIp = await UserIpModel.findOne({ userIp: req.ip});
+            const clickQuery = {
+                $inc: {
+                    clicks: 1
+                },
+            };
+
+            if (!userIp) {
+                // update clickQuery with uniqueClick property
+                clickQuery.$inc.uniqueClicks = 1
+                await UserIpModel.create({
+                    userIp: req.ip,
+                });
+            };
+
             await URLModel.updateOne(
                 {
                     $or: [
@@ -203,9 +238,7 @@ const RedirectOriginalUrl = async (req, res) => {
                         { urlId }
                     ]
                 },
-                {
-                    $inc: { clicks: 1 },
-                },
+                clickQuery,
                 {
                     new: true
                 });
@@ -219,6 +252,7 @@ const RedirectOriginalUrl = async (req, res) => {
         }
 
     } catch (error) {
+        console.log(error)
         return res.status(400).json({
             message: "Something went wrong while redirecting",
             error,
@@ -270,7 +304,31 @@ const UpdateUrl = async (req, res) => {
             error: "Something went wrong while upating url"
         });
     }
+};
+
+const DownloadQrCode = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const url = await URLModel.findById(id).populate("qrCode");
+        if (!url) {
+            return res.status(400).json({
+                success: false,
+                message: "404 Url Not Found"
+            })
+        };
+
+        url.qrCode.downloads += 1;
+        await url.qrCode.save();
+
+        return res.status(200).json({ success: true });
+
+    } catch (error) {
+        console.log(error)
+        return res.status(400).json({
+            error: "Something went wrong while upating url"
+        });
+    }
 }
 
 
-export { GetAllUrl, ShortUrl, RedirectOriginalUrl, GetSingleUrl, UpdateUrl };
+export { GetAllUrl, ShortUrl, RedirectOriginalUrl, GetSingleUrl, UpdateUrl, DownloadQrCode };
