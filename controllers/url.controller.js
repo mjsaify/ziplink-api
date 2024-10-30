@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { ExpirationDate, GenearateQrCode, validateUrl } from '../utils/index.js';
+import { ExpirationDate, GenearateQrCode } from '../utils/index.js';
 import URLModel from '../models/url.model.js';
 import { SHORT_URL } from '../constants.js';
 import { uploadOnCloudinary } from '../utils/file-upload.js'
@@ -80,10 +80,10 @@ const ShortUrl = async (req, res) => {
             // check if custom link exist
             const customLinkExist = await URLModel.findOne({ customLink });
             if (customLinkExist) {
-                return res.status(400).json({ 
+                return res.status(400).json({
                     success: false,
                     error: 'Custom link cannot be same'
-                 });
+                });
             };
             const urlId = nanoid(8);
             const shortUrl = `${SHORT_URL}/${customLink}`;
@@ -166,14 +166,18 @@ const RedirectOriginalUrl = async (req, res) => {
         const { urlId } = req.params;
         const requestUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
 
-        const url = await URLModel.findOne({ customLink: urlId });
-        console.log(url)
+        const url = await URLModel.findOne({
+            $or: [
+                { customLink: urlId },
+                { urlId }
+            ]
+        });
+
         if (!url) {
             return res.status(200).json({
                 message: "Invalid url",
             });
         };
-
 
         if (requestUrl !== url.shortUrl) {
             return res.status(200).json({
@@ -181,18 +185,39 @@ const RedirectOriginalUrl = async (req, res) => {
             });
         };
 
-        await URLModel.updateOne(
-            {
-                urlId
-            },
-            {
-                $inc: { clicks: 1 },
-            },
-            {
-                new: true
+        // comparing dates
+        const currentDate = new Date().toISOString();
+        if (currentDate > url.expiresAt) {
+            return res.status(400).json({
+                success: false,
+                message: "URL is Expired"
             });
+        };
 
-        return res.redirect(url.originalUrl);
+        // check url status
+        if (url.urlStatus === "active") {
+            await URLModel.updateOne(
+                {
+                    $or: [
+                        { customLink: urlId },
+                        { urlId }
+                    ]
+                },
+                {
+                    $inc: { clicks: 1 },
+                },
+                {
+                    new: true
+                });
+
+            return res.redirect(url.originalUrl);
+        } else if (url.urlStatus === "inactive" || url.urlStatus === "expired") {
+            return res.status(400).json({
+                success: false,
+                message: "404 Not Found"
+            });
+        }
+
     } catch (error) {
         return res.status(400).json({
             message: "Something went wrong while redirecting",
