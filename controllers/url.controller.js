@@ -1,12 +1,13 @@
 import { nanoid } from 'nanoid';
-import { ExpirationDate, GenearateQrCode } from '../utils/index.js';
+import { ExpirationDate, findLocation, GenearateQrCode } from '../utils/index.js';
 import URLModel from '../models/url.model.js';
 import { SHORT_URL } from '../constants.js';
 import { uploadOnCloudinary } from '../utils/file-upload.js'
 import QRCodeModel from '../models/qrcode.model.js';
 import { UrlSchema } from '../utils/_types.js';
 import { z } from 'zod';
-import UserIpModel from '../models/userip.model.js';
+import IpAddressModel from '../models/ipaddessmodel.js';
+import { v2 as cloudinary } from 'cloudinary';
 
 
 
@@ -101,6 +102,7 @@ const ShortUrl = async (req, res) => {
             const qrModel = await QRCodeModel.create({
                 qrCodeUrl: qrCodeUri,
                 qrCodeImage: qrImage.url,
+                public_id: qrImage.public_id,
             });
 
             // save url
@@ -138,6 +140,7 @@ const ShortUrl = async (req, res) => {
             const qrModel = await QRCodeModel.create({
                 qrCodeUrl: qrCodeUri,
                 qrCodeImage: qrImage.url,
+                public_id: qrImage.public_id,
             });
 
             // save url
@@ -184,6 +187,15 @@ const RedirectOriginalUrl = async (req, res) => {
             });
         };
 
+        // comparing dates
+        const currentDate = new Date().toISOString();
+        if (currentDate > url.expiresAt) {
+            return res.status(400).json({
+                success: false,
+                message: "URL is Expired"
+            });
+        };
+
         // Check if it's a QR code scan
         if (source === "qr") {
             await QRCodeModel.updateOne(
@@ -204,19 +216,10 @@ const RedirectOriginalUrl = async (req, res) => {
         }
 
 
-        // comparing dates
-        const currentDate = new Date().toISOString();
-        if (currentDate > url.expiresAt) {
-            return res.status(400).json({
-                success: false,
-                message: "URL is Expired"
-            });
-        };
-
         // check url status
         if (url.urlStatus === "active") {
             // check for unique ip
-            const userIp = await UserIpModel.findOne({ userIp: req.ip});
+            const userIp = await IpAddressModel.findOne({ ip: "150.161.235.107" });
             const clickQuery = {
                 $inc: {
                     clicks: 1
@@ -224,11 +227,12 @@ const RedirectOriginalUrl = async (req, res) => {
             };
 
             if (!userIp) {
+                // find location through ip
+                const location = await findLocation("150.161.235.107");
+
                 // update clickQuery with uniqueClick property
                 clickQuery.$inc.uniqueClicks = 1
-                await UserIpModel.create({
-                    userIp: req.ip,
-                });
+                await IpAddressModel.create(location);
             };
 
             await URLModel.updateOne(
@@ -287,6 +291,7 @@ const UpdateUrl = async (req, res) => {
 
         if (!url) {
             return res.status(400).json({
+                sucees: false,
                 message: "Url could not update",
                 error,
             });
@@ -306,6 +311,33 @@ const UpdateUrl = async (req, res) => {
     }
 };
 
+
+const DeleteUrl = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const url = await URLModel.findByIdAndDelete(id);
+        if (!url) {
+            return res.status(400).json({
+                sucees: false,
+                message: "Could not delete url",
+            });
+        };
+
+        return res.status(200).json({
+            success: true,
+            message: "Url deleted successfully",
+        });
+
+
+    } catch (error) {
+        console.log(error);
+        return res.status(400).json({
+            error: "Something went wrong while deleting url"
+        });
+    }
+}
+
+
 const DownloadQrCode = async (req, res) => {
     try {
         const { id } = req.params;
@@ -317,18 +349,21 @@ const DownloadQrCode = async (req, res) => {
             })
         };
 
+        const fileLink = cloudinary.url(url.qrCode?.public_id, {
+            flags: "attachment:qrcode"
+        });
+
         url.qrCode.downloads += 1;
         await url.qrCode.save();
 
-        return res.status(200).json({ success: true });
+        return res.status(200).json({ success: true, link: fileLink }); 
 
     } catch (error) {
         console.log(error)
         return res.status(400).json({
-            error: "Something went wrong while upating url"
+            error: "Something went wrong while downloading"
         });
     }
 }
 
-
-export { GetAllUrl, ShortUrl, RedirectOriginalUrl, GetSingleUrl, UpdateUrl, DownloadQrCode };
+export { GetAllUrl, ShortUrl, RedirectOriginalUrl, GetSingleUrl, UpdateUrl, DeleteUrl, DownloadQrCode };

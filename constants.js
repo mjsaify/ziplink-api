@@ -13,3 +13,5 @@ export const CookieOptions = {
 export const CLOUDINARY_NAME = process.env.CLOUDINARY_NAME;
 export const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
 export const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;
+export const IP_LOCATION_API_KEY = process.env.IP_LOCATION_API_KEY;
+export const IP_LOCATION_URI = process.env.IP_LOCATION_URI;

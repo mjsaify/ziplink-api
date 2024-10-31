@@ -10,9 +10,9 @@ const QrCodeSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-        isActive: {
-            type: Boolean,
-            default: true,  // To mark if the QR code is active or has been deactivated
+        public_id: {
+            type: String,
+            required: true,
         },
         scans: {
             type: Number,

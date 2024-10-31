@@ -1,9 +1,5 @@
 import QRCode from 'qrcode';
-
-export function validateUrl(value) {
-    const urlPattern = new RegExp(/^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,6}(\/[\w\-.~:\/?#[\]@!$&'()*+,;%=]*)?$/i);
-    return urlPattern.test(value); // return true or false
-};
+import { IP_LOCATION_API_KEY, IP_LOCATION_URI } from '../constants.js';
 
 
 export const generateAccessAndRefreshToken = async (user) => {
@@ -40,3 +36,15 @@ export const ExpirationDate = () => {
     // Convert to ISO format
     return expirationDate.toISOString();
 };
+
+
+export const findLocation = async (ip) =>{
+    try {
+        const request = await fetch(`${IP_LOCATION_URI}/?key=${IP_LOCATION_API_KEY}&ip=${ip}&format=json`);
+        const response = await request.json();
+        return response;
+    } catch (error) {
+        console.log(error);
+        return error;
+    }
+}

@@ -27,6 +27,13 @@ const URLSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        // this feature requires mongodb aggregation pipeline
+        // clicksByCountry: [
+        //     {
+        //         type: mongoose.Schema.Types.ObjectId,
+        //         ref: 'IpAddress',
+        //     }
+        // ],
         urlStatus: {
             type: String,
             enum: ['active', 'inactive', 'expired'],
