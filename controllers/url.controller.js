@@ -8,6 +8,7 @@ import { UrlSchema } from '../utils/_types.js';
 import { z } from 'zod';
 import IpAddressModel from '../models/ipaddessmodel.js';
 import { v2 as cloudinary } from 'cloudinary';
+import UserModel from '../models/user.model.js';
 
 
 
@@ -16,7 +17,8 @@ const GetAllUrl = async (_, res) => {
         const urls = await URLModel.find().populate('qrCode');
         if (urls.length < 1) {
             return res.status(200).json({
-                error: "...Oops No Url Found",
+                sucees: false,
+                message: "...Oops No Url Found",
             });
         };
 
@@ -89,7 +91,7 @@ const ShortUrl = async (req, res) => {
             };
             const urlId = nanoid(8);
             const shortUrl = `${SHORT_URL}/${customLink}`;
-            const qrCodeUri = `${shortUrl}/?source=qr`
+            const qrCodeUri = `${shortUrl}/?source=qr`;
 
             const qrCode = await GenearateQrCode(shortUrl);
             if (!qrCode) {
@@ -106,15 +108,26 @@ const ShortUrl = async (req, res) => {
             });
 
             // save url
-            await URLModel.create({
+            const newUrl = await URLModel.create({
                 title,
                 urlId,
                 originalUrl,
                 shortUrl,
                 qrCode: qrModel._id,
                 customLink,
-                expiresAt
+                expiresAt,
+                createdBy: req.user.id,
             });
+
+            await UserModel.findByIdAndUpdate({ _id: req.user.id }, {
+                $push: {
+                    url: newUrl._id,
+                },
+
+            },
+                {
+                    new: true,
+                })
 
             return res.status(201).json({
                 success: true,
@@ -144,14 +157,26 @@ const ShortUrl = async (req, res) => {
             });
 
             // save url
-            await URLModel.create({
+            const newUrl = await URLModel.create({
                 title,
                 urlId,
                 originalUrl,
                 shortUrl,
                 qrCode: qrModel._id,
-                expiresAt
+                expiresAt,
+                createdBy: req.user.id,
             });
+
+
+            await UserModel.findByIdAndUpdate({ _id: req.user.id }, {
+                $push: {
+                    url: newUrl._id,
+                },
+
+            },
+                {
+                    new: true,
+                });
 
             return res.status(201).json({
                 success: true,
@@ -323,6 +348,13 @@ const DeleteUrl = async (req, res) => {
             });
         };
 
+        await UserModel.findByIdAndUpdate(url.createdBy, // Find the user who created the URL
+            {
+                $pull: {
+                    url: url._id, // Remove the URL ID from the url array
+                }
+            });
+
         return res.status(200).json({
             success: true,
             message: "Url deleted successfully",
@@ -349,14 +381,10 @@ const DownloadQrCode = async (req, res) => {
             })
         };
 
-        const fileLink = cloudinary.url(url.qrCode?.public_id, {
-            flags: "attachment:qrcode"
-        });
-
         url.qrCode.downloads += 1;
         await url.qrCode.save();
 
-        return res.status(200).json({ success: true, link: fileLink }); 
+        return res.status(200).json({ success: true });
 
     } catch (error) {
         console.log(error)

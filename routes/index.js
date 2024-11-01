@@ -7,7 +7,7 @@ import auth from '../middleware/auth.js';
 const router = Router();
 
 // protected routes
-router.use("/url", urlRouter);
+router.use("/url", auth, urlRouter);
 router.use("/user", auth, userRouter);
 router.use("/auth/check-session", auth, CheckAuthSession);
 

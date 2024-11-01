@@ -6,6 +6,10 @@ import { ACCESS_TOKEN_EXPIRY, ACCESS_TOKEN_SECRET, REFRESH_TOKEN_EXPIRY, REFRESH
 
 const UserSchema = new mongoose.Schema(
     {
+        fullname: {
+            type: String,
+            required: true,
+        },
         email: {
             type: String,
             unique: true,
@@ -17,6 +21,10 @@ const UserSchema = new mongoose.Schema(
             type: String,
             required: true
         },
+        url: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "url"
+        }],
         refreshToken: {
             type: String,
         }

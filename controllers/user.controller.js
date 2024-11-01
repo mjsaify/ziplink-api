@@ -1,7 +1,8 @@
 import { SignupSchema, LoginSchema } from '../utils/_types.js';
 import UserModel from '../models/user.model.js';
-import { generateAccessAndRefreshToken } from '../utils/index.js';
+import { findLocation, generateAccessAndRefreshToken } from '../utils/index.js';
 import { CookieOptions } from '../constants.js';
+import IpAddressModel from '../models/ipaddessmodel.js';
 
 
 const UserSignup = async (req, res) => {
@@ -15,18 +16,18 @@ const UserSignup = async (req, res) => {
                 }))
             });
         }
-        const { email, password } = parsedInputs.data;
+        const { fullname, email, password } = parsedInputs.data;
         const isUserExist = await UserModel.findOne({ email });
 
         if (isUserExist) {
             return res.status(400).json({
                 success: false,
-                msg: "Email already registered",
+                message: "Email already registered",
             });
         };
 
         await UserModel.create({
-            email, password
+            fullname, email, password
         });
 
         return res.status(201).json({
@@ -38,7 +39,7 @@ const UserSignup = async (req, res) => {
         console.log(error);
         return res.status(400).json({
             success: false,
-            msg: "Something went wrong while signup"
+            message: "Something went wrong while signup"
         });
     }
 }
@@ -60,7 +61,7 @@ const UserLogin = async (req, res) => {
         const user = await UserModel.findOne({ email });
         if (!user) {
             return res.status(400).json({
-                msg: "Invalid Credentials"
+                message: "Invalid Credentials"
             });
         };
 
@@ -68,9 +69,12 @@ const UserLogin = async (req, res) => {
 
         if (!isPasswordCorrect) {
             return res.status(400).json({
-                msg: "Invalid Credentials"
+                message: "Invalid Credentials"
             });
         };
+
+        // find location
+        const location = await findLocation("106.219.156.169");
 
         // generate access and refresh token
         const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user);
@@ -83,6 +87,10 @@ const UserLogin = async (req, res) => {
                 status: 200,
                 success: true,
                 message: "Login successfull",
+                location: {
+                    country: location.country_name,
+                    city: location.city_name
+                }
             });
 
     } catch (error) {
@@ -125,9 +133,9 @@ const LogoutUser = async (req, res) => {
 };
 
 
-const CheckAuthSession = async (req, res) =>{
+const CheckAuthSession = async (req, res) => {
     try {
-        if(!req.user){
+        if (!req.user) {
             return res.status(400).json({
                 success: false,
                 message: "Unauthorized request"
@@ -146,4 +154,24 @@ const CheckAuthSession = async (req, res) =>{
 }
 
 
-export { UserSignup, UserLogin, LogoutUser, CheckAuthSession };
+const GetUserDetails = async (req, res) => {
+    try {
+        const user = await UserModel.findById(req.user.id).select("-password -refreshToken -updatedAt").populate({path: "url", select: "-updatedAt -urlId", populate: {
+            path: "qrCode",
+            select: "-updatedAt -createdAt -public_id -qrCodeImage -qrCodeUrl -createdAt"
+        }});
+        return res.status(200).json({
+            success: true,
+            user,
+        })
+    } catch (error) {
+        console.log(error)
+        return res.status(400).json({
+            success: false,
+            message: "Something went wrong"
+        });
+    }
+}
+
+
+export { UserSignup, UserLogin, LogoutUser, CheckAuthSession, GetUserDetails };
