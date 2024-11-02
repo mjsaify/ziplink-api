@@ -7,14 +7,13 @@ import QRCodeModel from '../models/qrcode.model.js';
 import { UrlSchema } from '../utils/_types.js';
 import { z } from 'zod';
 import IpAddressModel from '../models/ipaddessmodel.js';
-import { v2 as cloudinary } from 'cloudinary';
 import UserModel from '../models/user.model.js';
 
 
 
-const GetAllUrl = async (_, res) => {
+const GetAllUrl = async (req, res) => {
     try {
-        const urls = await URLModel.find().populate('qrCode');
+        const urls = await UserModel.findById(req.user.id).populate({ path: "url", populate: { path: "qrCode" } });
         if (urls.length < 1) {
             return res.status(200).json({
                 sucees: false,
@@ -26,8 +25,8 @@ const GetAllUrl = async (_, res) => {
     } catch (error) {
         console.log(error)
         return res.status(400).json({
+            success: false,
             message: "Something went wrong while fetching urls",
-            error,
         });
     }
 };
@@ -37,7 +36,9 @@ const GetSingleUrl = async (req, res) => {
     try {
         const urlId = req.params.id;
 
-        const url = await URLModel.findById(urlId).populate("qrCode");
+        const user = await UserModel.findById(req.user.id).populate({ path: "url", populate: { path: "qrCode" } });
+        const url = user.url.find((url) => url._id.toString() === urlId);
+
         if (!url) {
             return res.status(400).json({
                 success: false,
@@ -47,7 +48,7 @@ const GetSingleUrl = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            url,
+            url
         });
 
     } catch (error) {
@@ -72,7 +73,9 @@ const ShortUrl = async (req, res) => {
         const { title, originalUrl, customLink } = parsedInputs.data;
 
         // check if url exist in db, then return it
-        const url = await URLModel.findOne({ originalUrl });
+        const user = await UserModel.findById(req.user.id).populate({ path: "url", populate: { path: "qrCode" }});
+        const url = user.url.find((item) => item.originalUrl === originalUrl);
+
         if (url) {
             return res.status(200).json({
                 success: true,

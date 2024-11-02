@@ -1,8 +1,8 @@
-import { SignupSchema, LoginSchema } from '../utils/_types.js';
+import { SignupSchema, LoginSchema, UpdateUserNameAndEmail, UpdateUserPasswordSchema } from '../utils/_types.js';
 import UserModel from '../models/user.model.js';
-import { findLocation, generateAccessAndRefreshToken } from '../utils/index.js';
+import { generateAccessAndRefreshToken } from '../utils/index.js';
 import { CookieOptions } from '../constants.js';
-import IpAddressModel from '../models/ipaddessmodel.js';
+import argon2 from 'argon2';
 
 
 const UserSignup = async (req, res) => {
@@ -73,9 +73,6 @@ const UserLogin = async (req, res) => {
             });
         };
 
-        // find location
-        const location = await findLocation("106.219.156.169");
-
         // generate access and refresh token
         const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user);
 
@@ -87,10 +84,6 @@ const UserLogin = async (req, res) => {
                 status: 200,
                 success: true,
                 message: "Login successfull",
-                location: {
-                    country: location.country_name,
-                    city: location.city_name
-                }
             });
 
     } catch (error) {
@@ -156,14 +149,16 @@ const CheckAuthSession = async (req, res) => {
 
 const GetUserDetails = async (req, res) => {
     try {
-        const user = await UserModel.findById(req.user.id).select("-password -refreshToken -updatedAt").populate({path: "url", select: "-updatedAt -urlId", populate: {
-            path: "qrCode",
-            select: "-updatedAt -createdAt -public_id -qrCodeImage -qrCodeUrl -createdAt"
-        }});
+        const user = await UserModel.findById(req.user.id).select("-password -refreshToken -updatedAt").populate({
+            path: "url", select: "-updatedAt -urlId", populate: {
+                path: "qrCode",
+                select: "-updatedAt -createdAt -public_id -qrCodeImage -qrCodeUrl -createdAt"
+            }
+        });
         return res.status(200).json({
             success: true,
             user,
-        })
+        });
     } catch (error) {
         console.log(error)
         return res.status(400).json({
@@ -171,7 +166,126 @@ const GetUserDetails = async (req, res) => {
             message: "Something went wrong"
         });
     }
+};
+
+const UpdateUserDetails = async (req, res) => {
+    try {
+        const parsedInputs = UpdateUserNameAndEmail.safeParse(req.body);
+        const { id } = req.params;
+
+        console.log(parsedInputs.data)
+        if (!parsedInputs.success) {
+            return res.status(400).json({
+                success: false,
+                message: "One of the field is required",
+            });
+        };
+
+        let updates = {}
+        if (parsedInputs.data.fullname) updates.fullname = parsedInputs.data.fullname;
+        if (parsedInputs.data.email) updates.email = parsedInputs.data.email;
+
+        await UserModel.findByIdAndUpdate(
+            id,
+            {
+                $set: updates,
+            },
+            {
+                new: true,
+            }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Profile Updated"
+        });
+    } catch (error) {
+        console.log(error)
+        return res.status(400).json({
+            success: false,
+            message: "Could not update profile, please try later"
+        });
+    }
+};
+
+
+const UpdateUserPassword = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const parsedInputs = UpdateUserPasswordSchema.safeParse(req.body);
+
+
+        if (!parsedInputs.success) {
+            return res.status(400).json({
+                success: false,
+                message: "Could not update password, please try later"
+            });
+        };
+
+        const hashPassword = await argon2.hash(parsedInputs.data.confirmPassword);
+
+        const user = await UserModel.findByIdAndUpdate(id, {
+            password: hashPassword,
+        });
+
+
+        if (!user) {
+            return res.status(400).json({
+                success: true,
+                message: "Could not update password, please try later"
+            });
+        };
+
+        user.refreshToken = "";
+        await user.save();
+
+        return res.status(200)
+            .clearCookie("accessToken")
+            .clearCookie("refreshToken")
+            .json({
+                success: true,
+                message: "Password Changed, Please login again"
+            });
+
+    } catch (error) {
+        console.log(error)
+        return res.status(400).json({
+            success: false,
+            message: "Could not update password, please try later"
+        });
+    }
+};
+
+
+const DeleteUserAccount = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await UserModel.findByIdAndDelete(id);
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Could not attempt action, please try later"
+            });
+        };
+
+        return res.status(200)
+            .clearCookie("accessToken")
+            .clearCookie("refreshToken")
+            .json({
+                success: true,
+                message: "Account Deleted Successfully"
+            });
+
+
+    } catch (error) {
+        console.log(error)
+        return res.status(400).json({
+            success: false,
+            message: "Could not attempt action, please try later"
+        });
+    }
 }
 
 
-export { UserSignup, UserLogin, LogoutUser, CheckAuthSession, GetUserDetails };
+export { UserSignup, UserLogin, LogoutUser, CheckAuthSession, GetUserDetails, UpdateUserDetails, UpdateUserPassword, DeleteUserAccount };
