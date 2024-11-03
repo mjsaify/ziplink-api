@@ -14,7 +14,7 @@ import UserModel from '../models/user.model.js';
 const GetAllUrl = async (req, res) => {
     try {
         const urls = await UserModel.findById(req.user.id).populate({ path: "url", populate: { path: "qrCode" } });
-        if (urls.length < 1) {
+        if (urls?.length < 1) {
             return res.status(200).json({
                 sucees: false,
                 message: "...Oops No Url Found",
