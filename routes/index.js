@@ -9,7 +9,7 @@ const router = Router();
 // protected routes
 router.use("/url", auth, urlRouter);
 router.use("/user", auth, userRouter);
-router.use("/auth/check-session", auth, CheckAuthSession);
+router.get("/auth/check-session", auth, CheckAuthSession);
 
 // Non-protected routes
 router.post('/signup', UserSignup);
