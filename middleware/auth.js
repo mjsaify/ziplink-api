@@ -4,21 +4,22 @@ import { ACCESS_TOKEN_SECRET } from '../constants.js';
 
 const auth = async (req, res, next) =>{
     try {
-        const cookies = req.headers.cookie;
-        if(cookies === undefined){
+        const token = req.cookies;
+
+        if(token === undefined){
             return res.status(400).json({
                 success: false,
                 message: "Invalid request token"
             });
         }
-        const token = cookies?.split(";")[0].split("=")[1];
-        if (!token) {
+        const accessToken = token.accessToken;
+        if (!accessToken) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid request token"
             });
         }
-        const decodedToken = jwt.verify(token, ACCESS_TOKEN_SECRET);
+        const decodedToken = jwt.verify(accessToken, ACCESS_TOKEN_SECRET);
         req.user = decodedToken;
         next();
     } catch (error) {
