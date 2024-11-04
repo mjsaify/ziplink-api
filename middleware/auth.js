@@ -5,7 +5,6 @@ import { ACCESS_TOKEN_SECRET } from '../constants.js';
 const auth = async (req, res, next) =>{
     try {
         const token = req.cookies;
-
         if(token === undefined){
             return res.status(400).json({
                 success: false,
