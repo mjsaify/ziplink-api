@@ -9,7 +9,6 @@ export const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY;
 export const CookieOptions = {
     httpOnly: true,
     secure: true, 
-    sameSite: 'Lax' 
 }
 export const CLOUDINARY_NAME = process.env.CLOUDINARY_NAME;
 export const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
