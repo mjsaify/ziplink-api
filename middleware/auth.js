@@ -5,12 +5,12 @@ import { ACCESS_TOKEN_SECRET } from '../constants.js';
 const auth = async (req, res, next) =>{
     try {
         const cookies = req.headers.cookie;
-        // if(cookies === undefined){
-        //     return res.status(400).json({
-        //         success: false,
-        //         message: "Invalid request token"
-        //     });
-        // }
+        if(cookies === undefined){
+            return res.status(400).json({
+                success: false,
+                message: "Invalid request token"
+            });
+        }
         const token = cookies?.split(";")[0].split("=")[1];
         if (!token) {
             return res.status(400).json({

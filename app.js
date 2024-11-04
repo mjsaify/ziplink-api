@@ -1,10 +1,12 @@
 import Express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { BASE_URL } from './constants.js';
 import router from './routes/index.js';
 import { RedirectOriginalUrl } from './controllers/url.controller.js';
 
 const app = Express();
+app.use(cookieParser());
 app.use(cors({
     origin: BASE_URL,
     credentials: true

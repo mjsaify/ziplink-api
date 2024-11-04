@@ -50,6 +50,7 @@ const UserLogin = async (req, res) => {
         const parsedInputs = LoginSchema.safeParse(req.body);
         if (!parsedInputs.success) {
             return res.status(400).json({
+                success: false,
                 errors: parsedInputs.error.issues.map((issue) => ({
                     path: issue.path.join('.'),
                     message: issue.message,
@@ -61,6 +62,7 @@ const UserLogin = async (req, res) => {
         const user = await UserModel.findOne({ email });
         if (!user) {
             return res.status(400).json({
+                success: false,
                 message: "Invalid Credentials"
             });
         };
@@ -69,6 +71,7 @@ const UserLogin = async (req, res) => {
 
         if (!isPasswordCorrect) {
             return res.status(400).json({
+                success: false,
                 message: "Invalid Credentials"
             });
         };
@@ -81,7 +84,6 @@ const UserLogin = async (req, res) => {
             .cookie("accessToken", accessToken, CookieOptions)
             .cookie("refreshToken", refreshToken, CookieOptions)
             .json({
-                status: 200,
                 success: true,
                 message: "Login successfull",
             });
@@ -89,6 +91,7 @@ const UserLogin = async (req, res) => {
     } catch (error) {
         console.log(error)
         return res.status(400).json({
+            success: false,
             message: "Something went wrong while signup"
         });
     }
@@ -136,7 +139,6 @@ const CheckAuthSession = async (req, res) => {
         }
         res.status(200).json({
             success: true,
-            message: "Authorized"
         });
     } catch (error) {
         console.log(error)
