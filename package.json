@@ -4,7 +4,8 @@
   "description": "A url shortner api",
   "main": "index.js",
   "scripts": {
-    "dev": "node --watch --env-file=.env index.js"
+    "dev": "nodemon index.js",
+    "start": "node index.js"
   },
   "type": "module",
   "author": "MJ",
