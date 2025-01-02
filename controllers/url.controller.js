@@ -21,7 +21,10 @@ const GetAllUrl = async (req, res) => {
             });
         };
 
-        return res.status(200).json(urls);
+        return res.status(200).json({
+            success: true,
+            urls
+        });
     } catch (error) {
         console.log(error)
         return res.status(400).json({
@@ -73,7 +76,7 @@ const ShortUrl = async (req, res) => {
         const { title, originalUrl, customLink } = parsedInputs.data;
 
         // check if url exist in db, then return it
-        const user = await UserModel.findById(req.user.id).populate({ path: "url", populate: { path: "qrCode" }});
+        const user = await UserModel.findById(req.user.id).populate({ path: "url", populate: { path: "qrCode" } });
         const url = user.url.find((item) => item.originalUrl === originalUrl);
 
         if (url) {

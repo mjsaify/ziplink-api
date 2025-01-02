@@ -8,7 +8,8 @@ import { RedirectOriginalUrl } from './controllers/url.controller.js';
 const app = Express();
 app.use(cookieParser());
 app.use(cors({
-    origin: 'https://url-shortener-lk07.onrender.com',
+    // origin: 'https://url-shortener-lk07.onrender.com',
+    origin: BASE_URL,
     credentials: true
 }));
 

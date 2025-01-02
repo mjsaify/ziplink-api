@@ -51,10 +51,7 @@ const UserLogin = async (req, res) => {
         if (!parsedInputs.success) {
             return res.status(400).json({
                 success: false,
-                errors: parsedInputs.error.issues.map((issue) => ({
-                    path: issue.path.join('.'),
-                    message: issue.message,
-                }))
+                message: "Invalid Fields"
             });
         };
 
